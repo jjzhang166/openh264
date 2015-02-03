@@ -1,0 +1,95 @@
+CXX ?= g++
+AR ?= ar
+YASM ?= yasm
+
+CXXFLAGS += -Icodec/common/inc -Icodec/api/svc -Icodec/decoder/core/inc -Icodec/decoder/plus/inc
+YASMFLAGS += -m amd64 -f macho64 -DUNIX64 -Icodec/common/x86
+
+OPENH264_COMMON_CORE_SRC = \
+	$(addprefix codec/common/src/,\
+		common_tables.cpp \
+		copy_mb.cpp \
+		cpu.cpp \
+		crt_util_safe_x.cpp \
+		deblocking_common.cpp \
+		expand_pic.cpp \
+		intra_pred_common.cpp \
+		mc.cpp \
+		memory_align.cpp \
+		sad_common.cpp \
+		utils.cpp \
+		welsCodecTrace.cpp \
+		WelsThreadLib.cpp)
+
+OPENH264_COMMON_CORE_X86_ASM_SRC = \
+	$(addprefix codec/common/x86/,\
+		cpuid.asm \
+		deblock.asm \
+		expand_picture.asm \
+		intra_pred_com.asm \
+		mb_copy.asm \
+		mc_chroma.asm \
+		mc_luma.asm \
+		satd_sad.asm \
+		vaa.asm)
+
+OPENH264_DECODER_CORE_SRC = \
+	$(addprefix codec/decoder/core/src/,\
+		au_parser.cpp \
+		bit_stream.cpp \
+		cabac_decoder.cpp \
+		deblocking.cpp \
+		decode_mb_aux.cpp \
+		decode_slice.cpp \
+		decoder.cpp \
+		decoder_core.cpp \
+		decoder_data_tables.cpp \
+		error_concealment.cpp \
+		fmo.cpp \
+		get_intra_predictor.cpp \
+		manage_dec_ref.cpp \
+		memmgr_nal_unit.cpp \
+		mv_pred.cpp \
+		parse_mb_syn_cabac.cpp \
+		parse_mb_syn_cavlc.cpp \
+		pic_queue.cpp \
+		rec_mb.cpp)
+
+OPENH264_DECODER_PLUS_SRC = \
+	$(addprefix codec/decoder/plus/src/,\
+		welsDecoderExt.cpp)
+
+OPENH264_DECODER_CORE_X86_ASM_SRC = \
+	$(addprefix codec/decoder/core/x86/,\
+		dct.asm \
+		intra_pred.asm)
+
+OPENH264_SRC = \
+	$(OPENH264_COMMON_CORE_SRC) \
+	$(OPENH264_DECODER_CORE_SRC) \
+	$(OPENH264_DECODER_PLUS_SRC)
+
+OPENH264_ASM_SRC = \
+	$(OPENH264_COMMON_CORE_X86_ASM_SRC) \
+	$(OPENH264_DECODER_CORE_X86_ASM_SRC)
+
+OPENH264_OBJS = \
+	$(patsubst %.cpp,$(OUT_DIR)/%.o,$(OPENH264_SRC)) \
+	$(patsubst %.asm,$(OUT_DIR)/%.o,$(OPENH264_ASM_SRC))
+
+$(OUT_DIR)/%.o: %.cpp
+	mkdir -p `dirname $@` && $(CXX) -c $(CXXFLAGS) -o $@ $<
+
+$(OUT_DIR)/%.o: %.asm
+	mkdir -p `dirname $@` && $(YASM) $(YASMFLAGS) -o $@ $<
+
+.PHONY:	all clean
+
+all:	$(OUT_DIR)/libopenh264.a
+
+clean:
+	rm -f $(OUT_DIR)/libopenh264.a $(OPENH264_OBJS)
+
+$(OUT_DIR)/libopenh264.a: $(OPENH264_OBJS)
+	$(AR) rcs $@ $(OPENH264_OBJS)
+

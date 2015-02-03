@@ -1,0 +1,14 @@
+[package]
+
+name = "openh264-sys"
+version = "0.1.0"
+authors = ["The OpenH264 Project Developers"]
+
+build = "make -f makefile.cargo"
+
+[lib]
+
+name = "openh264-sys"
+path = "lib.rs"
+
+
